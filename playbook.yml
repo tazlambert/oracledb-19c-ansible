@@ -1,0 +1,18 @@
+---
+- name: Configure Oracle Linux 7 and Install Oracle Database 19c
+  hosts: db
+  become: True
+  roles:
+    - role: linux-oracle
+    - role: oracle-install
+      become_user: '{{ oracle_user }}'
+
+  pre_tasks:
+    # ==> Fix hosts file. Remove hostname from local loop. A workaround for vagrant
+    # adding hostname to local loop
+    - name: fix host file 127.0.0.1 entry
+      lineinfile: >
+        dest=/etc/hosts
+        regexp='^127\.0\.0\.1'
+        line='127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4'
+        owner=root group=root mode=0644

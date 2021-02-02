@@ -1,0 +1,92 @@
+# ==> Installing Oracle Database 19c
+- name: create folder for installation files
+  file: state=directory path={{ installation_folder }}
+# ==> Copy installer files
+- name: copy installer files
+  copy: src={{ item }} dest='{{ installation_folder }}/'
+  with_items: '{{ installer_archives }}'
+
+- name: create folder for Oracle Home files
+  file: state=directory path={{ oracle_home }}
+# ==> extract files
+- name: extract installation files
+  unarchive:
+    src: '{{ installer_location }}'
+    dest: '{{ oracle_home }}'
+    remote_src: true
+
+- name: delete installer zip files
+  file:
+    state: absent
+    path: '{{ installer_location }}'
+
+# ==> generate response file
+- name: generate the response file for software only installation
+  template: src=db_install19c.rsp.j2 dest="{{ installation_folder }}/db_install.rsp"
+
+# ==> execute installation
+- name: install oracle database
+  command: "{{ oracle_home }}/runInstaller -silent -ignorePrereqFailure  -waitforcompletion -responseFile {{ installation_folder }}/db_install.rsp"
+  ignore_errors: yes
+
+# ==> execute Inventory command as root
+- name: execute inventoty root command
+  command: '{{ inventory_location }}/orainstRoot.sh'
+  become_user: root
+
+# ==> execute DB home command as root
+- name: execute DB home root command
+  command: '{{ oracle_home }}/root.sh'
+  become_user: root
+
+# ==> TODO: Create a new role for creating the database
+# ==> Create Listener TODO: Parameterize port, name etc
+- name: copy listener response file
+  template: src=netca19c.rsp.j2 dest={{ installation_folder }}/netca.rsp
+
+- name: Create listener using netca
+  command: '{{ oracle_home }}/bin/netca -silent -responseFile {{ installation_folder }}/netca.rsp'
+
+- name: copy response file for dbca
+  template: src=dbca19c.rsp.j2 dest={{ installation_folder }}/dbca.rsp
+
+- name: create database
+  command: '{{ oracle_home }}/bin/dbca -silent -createDatabase -responseFile {{ installation_folder }}/dbca.rsp'
+
+- name: create oracle home variable
+  lineinfile: dest='/home/{{ oracle_user }}/.bashrc' line='export ORACLE_HOME={{ oracle_home }}'
+
+- name: create oracle sid variable
+  lineinfile: dest='/home/{{ oracle_user }}/.bashrc' line='export ORACLE_SID={{ oracle_sid }}'
+
+- name: add oracle home bin folder
+  lineinfile: dest='/home/{{ oracle_user }}/.bashrc' line='export PATH=$PATH:$ORACLE_HOME/bin'
+
+- name: change oratab
+  lineinfile: dest='/etc/oratab' regexp='^{{ oracle_sid }}:{{ oracle_home }}:N' line='{{ oracle_sid }}:{{ oracle_home }}:Y'
+  become_user: root
+
+- name: copy init.d oracle script to /etc/init.d
+  template: src=oradb.j2 dest=/etc/init.d/oradb mode=750
+  become_user: root
+
+- name: enable oradb script to run at startup
+  command: 'chkconfig --add oradb'
+  become_user: root
+
+# You can remove it for non vagrant server.
+#- name: reboot vagrant virtual machine
+#  local_action: shell vagrant reload
+#  sudo_user: '{{ host_username }}'
+#  ignore_errors: yes
+#  tags:
+#    - reboot-vagrant
+
+- name: create trigger for autostart pluggable db's
+  copy: src=start-pluggable-dbs.sh dest={{ installation_folder }}/ mode=755
+  tags:
+    - start-pluggable
+
+- shell: '{{ installation_folder }}/start-pluggable-dbs.sh'
+  tags:
+    - start-pluggable

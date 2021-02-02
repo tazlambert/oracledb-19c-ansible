@@ -1,0 +1,40 @@
+install_db: INSTALL_DB_SWONLY
+oracle_hostname: '{{ server_hostname }}'
+inventory_os_group: '{{ oracle_install_group }}'
+inventory_location: '{{ oracle_inventroy }}/inventory'
+oracle_home: '{{ oracle_base }}/{{ oracle_user }}/product/{{ oracle_install_version }}/{{ dbhome_name }}'
+installation_folder: '{{ oracle_base}}/installation'
+server_hostname: '{{ ansible_fqdn }}'
+installer_archives: "V982063-01.zip"
+installer_location: '{{ installation_folder }}/{{ installer_archives}}'
+
+oracle_install_version: "19.3.0"
+dbhome_name: "dbhome_1"
+oracle_db_config: "SINGLE"
+oracle_edition: "EE"
+oracle_dba_group: dba
+oracle_oper_group: oper
+oracle_listener: "LISTENER"
+oracle_database_type: "GENERAL_PURPOSE"
+oracle_globalname: "orcl.oradb19c.private"
+oracle_sid: "orcl"
+create_container_database: "true"
+number_of_pdbs: "1"
+oracle_conf_as_container_db: "true"
+pdb_prefix: "db"
+oracle_install_samples: "true"
+oracle_pdb_name: "db01"
+oracle_charset: "AL32UTF8"
+oracle_memory_option: "false"
+# memory target
+oracle_memory_mb: 2048
+oracle_management_option: "DEFAULT"
+oracle_enable_recovery: "true"
+oracle_storage_type: "FILE_SYSTEM_STORAGE"
+oracle_dataloc: "{{ oracle_base }}/oradata"
+oracle_recoveryloc: "{{ oracle_base }}/recovery_area"
+oracle_decline_security_updates: "True"
+# password
+oracle_os_user_pass: '$6$P7jw3OaWKdR$tRSRPjTey.SPqhyLBxOKbm9k21MEYF6jHDUH2O03RPvISDVnkGqWNg1W6iJqZhqD3ErbdJZqUEuNnEuoAWHWO/'
+oracle_pass_all_users: oracle
+

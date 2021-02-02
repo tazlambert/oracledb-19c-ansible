@@ -1,0 +1,54 @@
+# ==> Configure Linux for Oracle Database 19c
+- name: Add Oracle Linux Repo
+  get_url: url=https://yum.oracle.com/public-yum-ol7.repo dest=/etc/yum.repos.d/public-yum-ol7.repo 
+  become: yes
+- name: Add GPG Oracle Linux Repo
+  get_url: url=https://public-yum.oracle.com/RPM-GPG-KEY-oracle-ol7 dest=/etc/pki/rpm-gpg/RPM-GPG-KEY-oracle
+  become: yes
+- name: Install required libraries
+  yum: 
+    state: present
+    name: "{{ packages_list }}"
+
+- name: Disable SELinux
+  selinux: state=disabled
+- name: Disable Firewall Deamon (firewalld)
+  service: name=firewalld state=stopped enabled=no
+
+# ==> Create Base directories
+- name: Create Oracle Base directory
+  file: state=directory path={{ oracle_base }} owner={{ oracle_user }} group={{ oracle_install_group }}
+
+# ==> Disable transparent hugepages
+- name: Copy script
+  copy: src=disable_trans_hugepages.sh dest='~/disable_trans_hugepages.sh' mode=755
+- name: Disable Transparent Huge Pages
+  shell: '~/disable_trans_hugepages.sh'
+
+# ==> Configure huge pages
+- name: configure kernel for hugepages
+  sysctl: name="vm.nr_hugepages" value="{{ hugepages_nr }}" state=present
+  tags:
+    - hugepages
+
+# ==> Add Swap
+- name: Copy add_swap script
+  copy: src=add_swap.sh dest='~/add_swap.sh' mode=755
+- name: Add Swap
+  shell: '~/add_swap.sh'
+
+# ==> Update Hostname
+- name: Update the /etc/hosts file with node name
+  tags: etchostsupdate
+  become: yes
+  become_user: root
+  lineinfile:
+    dest: "/etc/hosts"
+    regexp: "{{ansible_ssh_host}} {{ansible_fqdn}}  {{ansible_hostname}}"
+    line: "{{ item }}"
+    state: present
+    backup: yes
+  register: etchostsupdate
+  with_items:
+    - "{{ hostvars[groups['db'][0]]['ansible_ssh_host'] }}\t{{ hostvars[groups['db'][0]]['ansible_fqdn']}}\t{{ hostvars[groups['db'][0]]['ansible_hostname']}}"
+

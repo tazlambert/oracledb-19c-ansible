@@ -1,0 +1,14 @@
+oracle_user: oracle
+oracle_install_group: oinstall
+extra_groups:
+  - dba
+  - oper
+oracle_base: /oracle/app
+oracle_inventroy: /oracle
+
+packages_list:
+  - oracle-database-preinstall-19c
+  - compat-libstdc++-33
+  - gcc-c++
+  - rsync
+hugepages_nr: 578
