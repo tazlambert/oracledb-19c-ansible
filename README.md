@@ -51,3 +51,8 @@ sqlplus sys as sysdba
 ```
 vagrant destroy
 ```
+
+
+## References ##
+
+[Oracle Database Ansible by Christos Vezalis](https://github.com/cvezalis/oracledb-ansible)
