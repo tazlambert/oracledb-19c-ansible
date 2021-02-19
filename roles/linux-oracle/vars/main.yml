@@ -12,3 +12,4 @@ packages_list:
   - gcc-c++
   - rsync
 hugepages_nr: 578
+ansible_user_id: "opc"

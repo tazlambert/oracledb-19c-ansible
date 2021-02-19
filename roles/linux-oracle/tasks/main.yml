@@ -27,7 +27,7 @@
 
 # ==> Configure huge pages
 - name: configure kernel for hugepages
-  sysctl: name="vm.nr_hugepages" value="{{ hugepages_nr }}" state=present
+  sysctl: name="vm.nr_hugepages" value="{{ hugepages_nr | int }}" state=present
   tags:
     - hugepages
 
@@ -37,18 +37,41 @@
 - name: Add Swap
   shell: '~/add_swap.sh'
 
-# ==> Update Hostname
+# ==> Update Hostname, add with items as more hosts added
 - name: Update the /etc/hosts file with node name
   tags: etchostsupdate
   become: yes
   become_user: root
   lineinfile:
     dest: "/etc/hosts"
-    regexp: "{{ansible_ssh_host}} {{ansible_fqdn}}  {{ansible_hostname}}"
-    line: "{{ item }}"
+    regexp: ".*\t{{ hostvars[item]['ansible_hostname']}}\t{{ hostvars[item]['ansible_fqdn']}}\t{{ hostvars[item]['ansible_hostname']}}"
+    line: "{{ hostvars[item]['ansible_ssh_host'] }}\t{{ hostvars[item]['ansible_fqdn']}}\t{{ hostvars[item]['ansible_hostname']}}"
     state: present
     backup: yes
   register: etchostsupdate
-  with_items:
-    - "{{ hostvars[groups['db'][0]]['ansible_ssh_host'] }}\t{{ hostvars[groups['db'][0]]['ansible_fqdn']}}\t{{ hostvars[groups['db'][0]]['ansible_hostname']}}"
+  when: " ansible_hostname not in item or ansible_hostname in item "
+  with_items: "{{groups['db']}}"
+
+- name: SSH KeyGen command
+  become_user: "{{ ansible_user_id }}"
+  tags: run
+  shell: "ssh-keygen -q -b 2048 -t rsa -N '' -C 'ansible@user' -f ~/.ssh/id_rsa creates='~/.ssh/id_rsa' "
+
+- name: Fetch the keyfile from one server to another
+  become_user: "{{ ansible_user_id }}"
+  tags: run
+  fetch:
+    src: "~/.ssh/id_rsa.pub"
+    dest: "buffer/{{ansible_hostname}}-id_rsa.pub"
+    flat: yes
+
+- name: Copy the key add to authorized_keys using Ansible module
+  tags: run
+  become_user: "{{ ansible_user_id }}"
+  authorized_key:
+    user: "{{ ansible_user_id }}"
+    state: present
+    key: "{{ lookup('file','buffer/{{item}}-id_rsa.pub')}}"
+  when: " item not in ansible_hostname "
+  with_items: "{{ groups['db'] }}"
 
