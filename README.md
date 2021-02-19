@@ -34,16 +34,26 @@ sudo yum-config-manager --add-repo http://download.virtualbox.org/virtualbox/rpm
 sudo yum update
 sudo yum install VirtualBox-6.1
 ```
-5. Start the process
+5.1. Start the process using vagrant
 ```
 ssh-keygen –t rsa
-cd oracledb-19c-ansible
+cd weblogic-19c-ansible
 export ANSIBLE_CONFIG=ansible.cfg
 vagrant up
 ```
-6. Check if installation success
+5.2. Start the process using ansible only
+```
+ansible-playbook playbook.xml
+```
+6.1. Check if installation success in vagrant 
 ```
 vagrant ssh
+sudo su - oracle
+sqlplus sys as sysdba
+```
+6.2. Check if installation success ansible only
+```
+ssh opc@to-host
 sudo su - oracle
 sqlplus sys as sysdba
 ```
